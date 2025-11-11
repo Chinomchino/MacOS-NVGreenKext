@@ -1,22 +1,25 @@
 #include <Availability.h>
 
-// Detect DriverKit vs Kernel
-#if defined(__DRIVERKIT__)
-    #define NV_USE_DRIVERKIT 1
+// Skip DriverKit section entirely if headers are missing
+#if __has_include(<DriverKit/DriverKit.h>) && __has_include(<PCIDriverKit/IOPCIDevice.h>)
+    #define NV_HAS_DRIVERKIT 1
 #else
-    #define NV_USE_DRIVERKIT 0
+    #define NV_HAS_DRIVERKIT 0
 #endif
 
-#if __has_include(<PCIDriverKit/IOPCIDevice.h>)
-    #define NV_HAS_PCIDRIVERKIT 1
+#if NV_HAS_DRIVERKIT
+// ======================================================================
+// ✅ DriverKit / New SDK compatibility path
+// ======================================================================
+#include <DriverKit/DriverKit.h>
+#include <PCIDriverKit/IOPCIDevice.h>
+// ... existing DriverKit implementation ...
 #else
-    #define NV_HAS_PCIDRIVERKIT 0
+// ======================================================================
+// ✅ Classic KEXT path
+// ======================================================================
+// ... your IOKit KEXT implementation ...
 #endif
-
-// ======================================================================
-// ✅ DriverKit / New SDK Compatibility Path (placeholder)
-// ======================================================================
-#if NV_USE_DRIVERKIT || NV_HAS_PCIDRIVERKIT
 
 #include <DriverKit/DriverKit.h>
 #include <PCIDriverKit/IOPCIDevice.h>
