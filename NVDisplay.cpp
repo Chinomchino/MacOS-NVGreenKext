@@ -21,9 +21,6 @@
 // ... your IOKit KEXT implementation ...
 #endif
 
-#include <DriverKit/DriverKit.h>
-#include <PCIDriverKit/IOPCIDevice.h>
-
 class NVDisplay : public IOService {
     OSDeclareDefaultStructors(NVDisplay)
 private:
