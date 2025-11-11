@@ -1,3 +1,5 @@
+#define SKIP_DRIVERKIT 1
+
 #include <IOKit/IOLib.h>
 #include <IOKit/pci/IOPCIDevice.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
@@ -16,10 +18,10 @@ public:
 
 OSDefineMetaClassAndStructors(NVDisplay, IOService)
 
-bool NVDisplay::start(IOService *provider) {
+bool NVDisplay::start(IOService* provider) {
     IOLog("NVDisplayKext: starting\n");
 
-    IOPCIDevice* device = OSDynamicCast(IOPCIDevice, provider);
+    device = OSDynamicCast(IOPCIDevice, provider);
     if (!device) {
         IOLog("NVDisplayKext: provider is not a PCI device\n");
         return false;
@@ -28,10 +30,9 @@ bool NVDisplay::start(IOService *provider) {
     device->retain();
     device->open(this);
 
-    // macOS 15+ uses configRead16 via IOPCIDevice
     UInt16 vendor = 0, deviceId = 0;
-    device->configRead16(0x00, &vendor);    // kIOPCIConfigVendorID
-    device->configRead16(0x02, &deviceId);  // kIOPCIConfigDeviceID
+    IOPCIConfigRead16(device, 0x00, &vendor);    // vendor ID
+    IOPCIConfigRead16(device, 0x02, &deviceId);  // device ID
 
     IOLog("NVDisplayKext: vendor=0x%x device=0x%x\n", vendor, deviceId);
 
@@ -70,5 +71,10 @@ bool NVDisplay::start(IOService *provider) {
 
 void NVDisplay::stop(IOService* provider) {
     IOLog("NVDisplayKext: stopping\n");
+    if (device) {
+        device->close(this);
+        device->release();
+        device = nullptr;
+    }
     super::stop(provider);
 }
