@@ -29,6 +29,7 @@ jobs:
 
           echo "Using SDK: $SDKROOT"
           clang++ -Wall -Wextra -std=c++17 -fno-exceptions -fno-rtti \
+            -DSKIP_DRIVERKIT \
             -nostdinc \
             -I"$SDKROOT/System/Library/Frameworks/Kernel.framework/Headers" \
             -I"$SDKROOT/System/Library/Extensions/IOKit.framework/Headers" \
