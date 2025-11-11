@@ -18,7 +18,6 @@ clean:
 
 install-info-plist:
 	mkdir -p NVDisplay.kext/Contents/MacOS
-	cp NVDisplay NVDisplay.kext/Contents/MacOS/
-	cp Info.plist.template NVDisplay.kext/Contents/Info.plist
+	cp Info.plist NVDisplay.kext/Contents/Info.plist
 	chmod -R 755 NVDisplay.kext
 	zip -r NVDisplay.kext.zip NVDisplay.kext
