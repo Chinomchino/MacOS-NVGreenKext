@@ -1,26 +1,17 @@
-# ===========================================
-#  NVDisplayKext — minimal NVIDIA framebuffer example
-#  Build with: make
-# ===========================================
-SDKROOT ?= $(shell xcrun --sdk macosx --show-sdk-path)
-KEXT_DIR = NVDisplay.kext
-OBJ = $(KEXT_DIR)/Contents/MacOS/NVDisplay.o
-BIN = $(KEXT_DIR)/Contents/MacOS/NVDisplay
+SDKROOT := $(shell xcrun --sdk macosx --show-sdk-path)
+KEXT := NVDisplay.kext/Contents/MacOS/NVDisplay
+SRC := NVDisplayKernel.cpp
+CXXFLAGS := -Wall -Wextra -std=c++17 -fno-exceptions -fno-rtti -DSKIP_DRIVERKIT \
+            -nostdinc \
+            -I"$(SDKROOT)/System/Library/Frameworks/Kernel.framework/Headers" \
+            -I"$(SDKROOT)/System/Library/Extensions/IOKit.framework/Headers"
 
-$(OBJ): NVDisplay.cpp
-	mkdir -p $(dir $@)
-	clang++ -Wall -Wextra -std=c++17 -fno-exceptions -fno-rtti \
-		-nostdinc \
-		-I"$(SDKROOT)/System/Library/Frameworks/Kernel.framework/Headers" \
-		-I"$(SDKROOT)/System/Library/Extensions/IOKit.framework/Headers" \
-		-c $< -o $@
+all: $(KEXT)
 
-$(BIN): $(OBJ)
-	clang -r $< -o $@
-
-all: $(BIN)
-	@echo "✅ Built $(BIN)"
+$(KEXT): $(SRC)
+	mkdir -p NVDisplay.kext/Contents/MacOS
+	clang++ $(CXXFLAGS) -c $(SRC) -o NVDisplay.kext/Contents/MacOS/NVDisplay.o
+	clang -r NVDisplay.kext/Contents/MacOS/NVDisplay.o -o NVDisplay.kext/Contents/MacOS/NVDisplay
 
 clean:
-	rm -rf $(KEXT_DIR)
-
+	rm -rf NVDisplay.kext
