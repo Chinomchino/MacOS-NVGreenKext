@@ -6,7 +6,7 @@
 #define super IOService
 OSDefineMetaClassAndStructors(NVDisplay, IOService)
 
-bool NVDisplay::start(IOService* provider) {
+bool NVDisplay::start(IOService *provider) {
     IOLog("NVDisplayKext: starting\n");
 
     IOPCIDevice* device = OSDynamicCast(IOPCIDevice, provider);
@@ -18,40 +18,43 @@ bool NVDisplay::start(IOService* provider) {
     device->retain();
     device->open(this);
 
-    UInt16 vendor = device->configRead16(kIOPCIConfigVendorID);
-    UInt16 deviceId = device->configRead16(kIOPCIConfigDeviceID);
+    // macOS 15+ uses configRead16 via IOPCIDevice
+    UInt16 vendor = 0, deviceId = 0;
+    device->configRead16(0x00, &vendor);    // kIOPCIConfigVendorID
+    device->configRead16(0x02, &deviceId);  // kIOPCIConfigDeviceID
 
     IOLog("NVDisplayKext: vendor=0x%x device=0x%x\n", vendor, deviceId);
 
     if (vendor != 0x10DE) {
-        IOLog("NVDisplayKext: not NVIDIA, skipping initialization\n");
+        IOLog("NVDisplayKext: Not NVIDIA, skipping\n");
         return super::start(provider);
     }
 
-    // Enumerate BARs
-    for (uint32_t i = 0; i < device->getDeviceMemoryCount(); i++) {
-        IODeviceMemory* mem = device->getDeviceMemoryWithIndex(i);
-        if (!mem) continue;
-        IOLog("BAR[%u] length=%llu phys=0x%llx\n", i, mem->getLength(), mem->getPhysicalAddress());
+    // Map first BAR
+    IOMemoryMap* mmio = device->mapDeviceMemoryWithIndex(0);
+    if (mmio) {
+        volatile UInt32* regs = (volatile UInt32*)mmio->getVirtualAddress();
+        IOLog("NVDisplayKext: Mapped BAR0 @ %p, first reg=0x%08x\n", regs, regs[0]);
+    } else {
+        IOLog("NVDisplayKext: Failed to map BAR0\n");
     }
 
-    // Software framebuffer example (1024x768x32bpp)
+    // Allocate dummy framebuffer
     IOBufferMemoryDescriptor* fb = IOBufferMemoryDescriptor::inTaskWithOptions(
         kernel_task,
-        kIOMemoryKernelUserShared | kIOMemoryPageable,
-        1024*768*4,
+        kIOMemoryKernelUserShared,
+        1024 * 768 * 4,  // 1024x768x32bpp
         page_size
     );
 
     if (fb) {
-        void* ptr = fb->getBytesNoCopy();
-        memset(ptr, 0x00, fb->getLength());
-        IOLog("NVDisplayKext: Created software framebuffer @ %p\n", ptr);
+        void* fbPtr = fb->getBytesNoCopy();
+        memset(fbPtr, 0x00, fb->getLength());
+        IOLog("NVDisplayKext: Created software framebuffer @ %p\n", fbPtr);
         fb->release();
-    } else {
-        IOLog("NVDisplayKext: Failed to allocate software framebuffer\n");
     }
 
+    IOLog("NVDisplayKext: Initialization complete\n");
     return super::start(provider);
 }
 
