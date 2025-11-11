@@ -31,15 +31,19 @@ bool NVDisplay::start(IOService* provider) {
     device->open(this);
 
     UInt16 vendor = 0, deviceId = 0;
-    IOPCIConfigRead16(device, 0x00, &vendor);    // vendor ID
-    IOPCIConfigRead16(device, 0x02, &deviceId);  // device ID
+
+    // Modern macOS 15+ way to read PCI config space
+    if (device->getDeviceMemoryCount() > 0) {
+        IOMemoryMap* cfgMap = device->mapDeviceMemoryWithIndex(0);
+        if (cfgMap) {
+            volatile UInt8* cfg = (volatile UInt8*)cfgMap->getVirtualAddress();
+            vendor = *(volatile UInt16*)(cfg + 0x00);
+            deviceId = *(volatile UInt16*)(cfg + 0x02);
+            cfgMap->release();
+        }
+    }
 
     IOLog("NVDisplayKext: vendor=0x%x device=0x%x\n", vendor, deviceId);
-
-    if (vendor != 0x10DE) {
-        IOLog("NVDisplayKext: Not NVIDIA, skipping\n");
-        return super::start(provider);
-    }
 
     // Map first BAR
     IOMemoryMap* mmio = device->mapDeviceMemoryWithIndex(0);
@@ -54,7 +58,7 @@ bool NVDisplay::start(IOService* provider) {
     IOBufferMemoryDescriptor* fb = IOBufferMemoryDescriptor::inTaskWithOptions(
         kernel_task,
         kIOMemoryKernelUserShared,
-        1024 * 768 * 4,  // 1024x768x32bpp
+        1024 * 768 * 4,
         page_size
     );
 
@@ -78,3 +82,4 @@ void NVDisplay::stop(IOService* provider) {
     }
     super::stop(provider);
 }
+
