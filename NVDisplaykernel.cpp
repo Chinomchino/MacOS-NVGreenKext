@@ -1,9 +1,19 @@
-#include "NVDisplay.h"
 #include <IOKit/IOLib.h>
 #include <IOKit/pci/IOPCIDevice.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
 
 #define super IOService
+class NVDisplay : public IOService {
+    OSDeclareDefaultStructors(NVDisplay)
+    
+private:
+    IOPCIDevice* device = nullptr;
+
+public:
+    virtual bool start(IOService* provider) override;
+    virtual void stop(IOService* provider) override;
+};
+
 OSDefineMetaClassAndStructors(NVDisplay, IOService)
 
 bool NVDisplay::start(IOService *provider) {
