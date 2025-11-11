@@ -22,18 +22,18 @@ jobs:
           xcodebuild -version
           clang++ --version
 
-      # Build KEXT
+      # Build KEXT as x86_64
       - name: Build NVDisplayKext
         run: |
           mkdir -p NVDisplay.kext/Contents/MacOS
           SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
           echo "Using SDK: $SDKROOT"
 
-          make NVDisplay.kext/Contents/MacOS/NVDisplay
+          arch -x86_64 make NVDisplay.kext/Contents/MacOS/NVDisplay
 
       - name: Add info.plist and package before upload
         run: |
-          make install-info-plist
+          arch -x86_64 make install-info-plist
 
       # Upload KEXT artifact
       - name: Upload built KEXT
@@ -41,3 +41,4 @@ jobs:
         with:
           name: NVDisplayKext.kext.zip
           path: NVDisplay.kext.zip
+
