@@ -1,0 +1,44 @@
+name: Build NVDisplayKext
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      # Checkout your source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Xcode command-line tools
+      - name: Setup Xcode environment
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      # Optional: Fetch Lilu or NVIDIA open-source drivers
+      - name: Clone Lilu and dependencies
+        run: |
+          mkdir deps
+          cd deps
+          git clone https://github.com/acidanthera/Lilu.git --depth=1
+          git clone https://github.com/NVIDIA/open-gpu-kernel-modules.git --depth=1 || true
+          cd ..
+
+      # Build your kext
+      - name: Build NVDisplayKext
+        run: |
+          make
+          ls -l NVDisplayKext.kext/Contents/MacOS
+
+      # Upload compiled KEXT as an artifact
+      - name: Upload built KEXT
+        uses: actions/upload-artifact@v4
+        with:
+          name: NVDisplayKext.kext
+          path: NVDisplayKext.kext
