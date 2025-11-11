@@ -1,7 +1,7 @@
 SDKROOT := $(shell xcrun --sdk macosx --show-sdk-path)
 KEXT := NVDisplay.kext/Contents/MacOS/NVDisplay
 SRC := NVDisplayKernel.cpp
-CXXFLAGS := -Wall -Wextra -std=c++17 -fno-exceptions -fno-rtti -DSKIP_DRIVERKIT \
+CXXFLAGS := -arch x86_64 -Wall -Wextra -std=c++17 -fno-exceptions -fno-rtti -DSKIP_DRIVERKIT \
             -nostdinc \
             -I"$(SDKROOT)/System/Library/Frameworks/Kernel.framework/Headers" \
             -I"$(SDKROOT)/System/Library/Extensions/IOKit.framework/Headers"
