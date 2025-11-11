@@ -7,17 +7,15 @@
     #define NV_HAS_DRIVERKIT 0
 #endif
 
-// --- Step 2: Allow manual override from CI (disables DriverKit path entirely) ---
+// --- Step 2: Allow manual override from CI ---
 #ifdef SKIP_DRIVERKIT
     #undef NV_HAS_DRIVERKIT
     #define NV_HAS_DRIVERKIT 0
 #endif
 
-// ======================================================================
-// ✅ DRIVERKIT PATH (newer macOS SDKs with DriverKit.framework)
-// ======================================================================
-#if NV_HAS_DRIVERKIT
+#if NV_HAS_DRIVERKIT && !defined(SKIP_DRIVERKIT)
 
+// ---------------- DRIVERKIT CODE ----------------
 #include <DriverKit/DriverKit.h>
 #include <PCIDriverKit/IOPCIDevice.h>
 
@@ -30,13 +28,11 @@ private:
 public:
     kern_return_t Start(IOService *provider) override {
         IOLog("NVDisplayDext: starting (DriverKit)\n");
-
         device = OSDynamicCast(IOPCIDevice, provider);
         if (!device) {
             IOLog("NVDisplayDext: provider not a PCI device\n");
             return kIOReturnUnsupported;
         }
-
         IOLog("NVDisplayDext: Detected PCI device\n");
         return kIOReturnSuccess;
     }
@@ -48,11 +44,9 @@ public:
 
 OSDefineDefaultStructors(NVDisplay);
 
-// ======================================================================
-// ✅ CLASSIC KEXT PATH (fallback, used on CI and local KEXT builds)
-// ======================================================================
 #else
 
+// ---------------- CLASSIC KEXT CODE ----------------
 #include <IOKit/IOLib.h>
 #include <IOKit/pci/IOPCIDevice.h>
 
@@ -76,8 +70,6 @@ bool NVDisplay::start(IOService *provider) {
 
     IOLog("NVDisplayKext: vendor=0x%x device=0x%x\n", vendor, deviceId);
 
-    // Future: add framebuffer init or display output setup here.
-
     return super::start(provider);
 }
 
@@ -87,7 +79,6 @@ void NVDisplay::stop(IOService *provider) {
 }
 
 #endif // NV_HAS_DRIVERKIT
-
 
 class NVDisplay : public IOService {
     OSDeclareDefaultStructors(NVDisplay)
