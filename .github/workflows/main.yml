@@ -8,45 +8,30 @@ on:
 
 jobs:
   build:
-    #Use macOS-13 runner (has headers for Kernel.framework)
-    runs-on: macos-13
+    runs-on: macos-15
 
     steps:
+      # Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Show Xcode & Clang info
       - name: Show Xcode environment
         run: |
           xcode-select -p
           xcodebuild -version
           clang++ --version
 
-      #Build the KEXT source (simulate kernel build)
+      # Build KEXT
       - name: Build NVDisplayKext
         run: |
           mkdir -p NVDisplay.kext/Contents/MacOS
           SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-
           echo "Using SDK: $SDKROOT"
-          clang++ -Wall -Wextra -std=c++17 -fno-exceptions -fno-rtti \
-            -DSKIP_DRIVERKIT \
-            -nostdinc \
-            -I"$SDKROOT/System/Library/Frameworks/Kernel.framework/Headers" \
-            -I"$SDKROOT/System/Library/Extensions/IOKit.framework/Headers" \
-            -c NVDisplay.cpp -o NVDisplay.kext/Contents/MacOS/NVDisplay.o
 
-          # Bundle executable (dummy linking for CI)
-          clang -r NVDisplay.kext/Contents/MacOS/NVDisplay.o -o NVDisplay.kext/Contents/MacOS/NVDisplay
+          make NVDisplay.kext/Contents/MacOS/NVDisplay
 
-          # Copy Info.plist if exists
-          if [ -f Info.plist ]; then
-            mkdir -p NVDisplay.kext/Contents
-            cp Info.plist NVDisplay.kext/Contents/
-          fi
-
-          echo "KEXT structure:"
-          find NVDisplay.kext
-
+      # Upload KEXT artifact
       - name: Upload built KEXT
         uses: actions/upload-artifact@v4
         with:
