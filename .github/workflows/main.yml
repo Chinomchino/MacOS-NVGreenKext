@@ -31,9 +31,13 @@ jobs:
 
           make NVDisplay.kext/Contents/MacOS/NVDisplay
 
+      - name: Add info.plist and package before upload
+        run: |
+          make install-info-plist
+
       # Upload KEXT artifact
       - name: Upload built KEXT
         uses: actions/upload-artifact@v4
         with:
-          name: NVDisplayKext.kext
-          path: NVDisplay.kext
+          name: NVDisplayKext.kext.zip
+          path: NVDisplay.kext.zip
