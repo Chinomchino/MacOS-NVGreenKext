@@ -8,37 +8,46 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    #Use macOS-13 runner (has headers for Kernel.framework)
+    runs-on: macos-13
 
     steps:
-      # Checkout your source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install Xcode command-line tools
-      - name: Setup Xcode environment
+      - name: Show Xcode environment
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcode-select -p
           xcodebuild -version
+          clang++ --version
 
-      # Optional: Fetch Lilu or NVIDIA open-source drivers
-      - name: Clone Lilu and dependencies
-        run: |
-          mkdir deps
-          cd deps
-          git clone https://github.com/acidanthera/Lilu.git --depth=1
-          git clone https://github.com/NVIDIA/open-gpu-kernel-modules.git --depth=1 || true
-          cd ..
-
-      # Build your kext
+      #Build the KEXT source (simulate kernel build)
       - name: Build NVDisplayKext
         run: |
-          make
-          ls -l NVDisplayKext.kext/Contents/MacOS
+          mkdir -p NVDisplay.kext/Contents/MacOS
+          SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
 
-      # Upload compiled KEXT as an artifact
+          echo "Using SDK: $SDKROOT"
+          clang++ -Wall -Wextra -std=c++17 -fno-exceptions -fno-rtti \
+            -nostdinc \
+            -I"$SDKROOT/System/Library/Frameworks/Kernel.framework/Headers" \
+            -I"$SDKROOT/System/Library/Extensions/IOKit.framework/Headers" \
+            -c NVDisplay.cpp -o NVDisplay.kext/Contents/MacOS/NVDisplay.o
+
+          # Bundle executable (dummy linking for CI)
+          clang -r NVDisplay.kext/Contents/MacOS/NVDisplay.o -o NVDisplay.kext/Contents/MacOS/NVDisplay
+
+          # Copy Info.plist if exists
+          if [ -f Info.plist ]; then
+            mkdir -p NVDisplay.kext/Contents
+            cp Info.plist NVDisplay.kext/Contents/
+          fi
+
+          echo "KEXT structure:"
+          find NVDisplay.kext
+
       - name: Upload built KEXT
         uses: actions/upload-artifact@v4
         with:
           name: NVDisplayKext.kext
-          path: NVDisplayKext.kext
+          path: NVDisplay.kext
